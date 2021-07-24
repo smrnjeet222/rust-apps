@@ -1,80 +1,50 @@
-use clap::{App, Arg, ArgMatches};
-
-fn get_address(matches: ArgMatches) {
-  println!("You ordered for delivery.");
-  if let Some(i) = matches.value_of("address") {
-    match i {
-      "moon" => println!("Delivery not available to: {}", i),
-      _ => println!("Delivering to address: {}", i),
-    }
-  }
-}
+use colored::*;
+use rand::Rng;
+use std::cmp::Ordering;
+use std::io;
 
 fn main() {
-  let matches = App::new("Pizza Maker")
-    .version("1.0")
-    .author("Simranjeet Singh <smrnjeet222@gmail.com>")
-    .about("Helps u make the best pizza")
-    .arg(
-      Arg::new("style")
-        .long("style")
-        .value_name("STYLE")
-        .about("What type of pizza u want?")
-        .takes_value(true),
-    )
-    .arg(
-      Arg::new("toppings")
-        .short('t')
-        .long("toppings")
-        .value_name("TOPPINGS")
-        .multiple_occurrences(true)
-        .about("What toppings of pizza u want?")
-        .takes_value(true),
-    )
-    .arg(
-      Arg::new("order_type")
-        .long("order_type")
-        .required(true)
-        .value_name("ORDER_TYPE")
-        .about("dine-in, delivery or pick-up?")
-        .takes_value(true),
-    )
-    .arg(
-      Arg::new("address")
-        .long("adr")
-        .required_if_eq("order_type", "delivery")
-        .value_name("ADDRESS")
-        .about("Where do u live?")
-        .takes_value(true),
-    )
-    .get_matches();
+    println!("\nGuess a number b/w [1-100]");
+    println!("{}", "You will have 7 tries at max.".cyan());
 
-  if let Some(i) = matches.value_of("style") {
-    match i {
-      "thin crust" => println!("{} is my favourite too", i),
-      "pan" => println!("sucks!"),
-      _ => println!("You asked {} pizza", i),
+    let secret_number = rand::thread_rng().gen_range(1..101);
+    let mut tries: i32 = 7;
+
+    // println!("The secret number is: {}", secret_number);
+    loop {
+        if tries == 0 {
+            println!("{}", "U Loooser".red().bold());
+            break;
+        }
+        println!("Please input your guess: ");
+        let mut guess = String::new();
+        io::stdin()
+            .read_line(&mut guess)
+            .expect("Failed to read line");
+
+        let guess: u32 = match guess.trim().parse() {
+            Ok(num) => {
+                tries -= 1;
+                num
+            }
+            Err(_) => continue,
+        };
+
+        print!("You guessed: {} ", guess);
+
+        match guess.cmp(&secret_number) {
+            Ordering::Less => println!("{}", " [ Too small! ]".red()),
+            Ordering::Greater => println!("{}", " [ Too big! ]".red()),
+            Ordering::Equal => {
+                println!("\n{}", "Hurray, You win!".green());
+                break;
+            }
+        }
+        println!(
+            "{} {} {}",
+            "You have".yellow(),
+            tries,
+            "tries left.".yellow()
+        );
     }
-  }
-
-  if let Some(i) = matches.values_of("toppings") {
-    println!("Toppings :");
-    let vals: Vec<&str> = i.collect();
-
-    for val in vals {
-      match val {
-        "corn" => println!(" - {}", val),
-        "extra cheesee" => println!(" - {}", val),
-        "pineapple" => println!(" - {}", val),
-        _ => println!("{} not available", val),
-      }
-    }
-  }
-
-  if let Some(i) = matches.value_of("order_type") {
-    match i {
-      "delivery" => get_address(matches),
-      _ => println!("You ordered for {}", i),
-    }
-  }
 }
