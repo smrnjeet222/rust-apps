@@ -16,5 +16,5 @@ assert_cmd = "1.0.1"
 predicates = "1.0.5"
 
 [[bin]]
-name = "rust-cli"
+name = "rust-app"
 path = "src/main.rs"
