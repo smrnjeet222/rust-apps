@@ -1,50 +1,100 @@
 use colored::*;
-use rand::Rng;
-use std::cmp::Ordering;
-use std::io;
+use exitfailure::ExitFailure;
+use failure::ResultExt;
+use std::io::{self, Read};
+use structopt::StructOpt;
 
-fn main() {
-    println!("\nGuess a number b/w [1-100]");
-    println!("{}", "You will have 7 tries at max.".cyan());
+#[derive(StructOpt)]
+struct Options {
+    #[structopt(default_value = "Hello World!")]
+    /// Pika Pika?
+    message: String,
 
-    let secret_number = rand::thread_rng().gen_range(1..101);
-    let mut tries: i32 = 7;
+    #[structopt(short = "p", long = "pokeball")]
+    /// Pika...
+    pokeball: bool,
 
-    // println!("The secret number is: {}", secret_number);
-    loop {
-        if tries == 0 {
-            println!("{}", "U Loooser".red().bold());
-            break;
-        }
-        println!("Please input your guess: ");
-        let mut guess = String::new();
-        io::stdin()
-            .read_line(&mut guess)
-            .expect("Failed to read line");
+    #[structopt(short = "f", long = "file", parse(from_os_str))]
+    /// Use your own ASCII Pikachu from a file.
+    file: Option<std::path::PathBuf>,
 
-        let guess: u32 = match guess.trim().parse() {
-            Ok(num) => {
-                tries -= 1;
-                num
+    #[structopt(short = "i", long = "stdin")]
+    /// Read the message from STDIN
+    stdin: bool,
+}
+
+fn main() -> Result<(), ExitFailure> {
+    let options = Options::from_args(); // <-- This is where the magic happens! 
+    let mut message = "".to_string();
+    if options.stdin {
+        io::stdin().read_to_string(&mut message)?;
+        message.pop();
+    } else {
+        message = options.message;
+    }
+    if options.pokeball {
+        println!("{}", POKEBALL.to_string().red());
+    } else {
+        match &options.file {
+            Some(path) => {
+                let alt = std::fs::read_to_string(path)
+                    .with_context(|_| format!("could not read file {:?}", path))?;
+                print_message(message);
+                println!("{}", alt.bright_yellow());
             }
-            Err(_) => continue,
-        };
-
-        print!("You guessed: {} ", guess);
-
-        match guess.cmp(&secret_number) {
-            Ordering::Less => println!("{}", " [ Too small! ]".red()),
-            Ordering::Greater => println!("{}", " [ Too big! ]".red()),
-            Ordering::Equal => {
-                println!("\n{}", "Hurray, You win!".green());
-                break;
+            None => {
+                print_message(message);
+                println!("{}", PIKACHU.to_string().bright_yellow())
             }
         }
-        println!(
-            "{} {} {}",
-            "You have".yellow(),
-            tries,
-            "tries left.".yellow()
-        );
+    }
+    Ok(())
+}
+
+fn print_message(message: String) {
+    if message.to_lowercase().contains("raichu") {
+        eprintln!("Pikachu hasn't evolved yet...");
+    } else {
+        println!(" {}", "-".repeat(message.chars().count() + 2));
+        println!("| {} |", message);
+        println!(" {}", "-".repeat(message.chars().count() + 2));
+        println!("  \\  /");
+        println!("   \\/");
     }
 }
+
+
+
+
+
+const PIKACHU: &str = "⣿⣿⣿⣿⣿⡏⠉⠛⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⣿
+⣿⣿⣿⣿⣿⣿⠀⠀⠀⠈⠛⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠿⠛⠉⠁⠀⣿
+⣿⣿⣿⣿⣿⣿⣧⡀⠀⠀⠀⠀⠙⠿⠿⠿⠻⠿⠿⠟⠿⠛⠉⠀⠀⠀⠀⠀⣸⣿
+⣿⣿⣿⣿⣿⣿⣿⣷⣄⠀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⠏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠠⣴⣿⣿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⡟⠀⠀⢰⣹⡆⠀⠀⠀⠀⠀⢰⣹⡆⠀⠀⠀⠸⣿⣿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⠃⠀⠀⠈⠉⠀⠀⠤⠄⠀⠀⠀⠉⠁⠀⠀⠀⠀⢿⣿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⢾⣿⣷⠀⠀⠀⠀⡠⠤⢄⠀⠀⠀⠠⣿⣿⣷⠀⢸⣿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⡀⠉⠀⠀⠀⠀⠀⢄⠀⢀⠀⠀⠀⠀⠉⠉⠁⠀⠀⣿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣧⠀⠀⠀⠀⠀⠀⠀⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢹⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿";
+
+const POKEBALL: &str = "────────▄███████████▄────────
+─────▄███▓▓▓▓▓▓▓▓▓▓▓███▄─────
+────███▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓███────
+───██▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓██───
+──██▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓██──
+─██▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓██─
+██▓▓▓▓▓▓▓▓▓███████▓▓▓▓▓▓▓▓▓██
+██▓▓▓▓▓▓▓▓██░░░░░██▓▓▓▓▓▓▓▓██
+██▓▓▓▓▓▓▓██░░███░░██▓▓▓▓▓▓▓██
+███████████░░███░░███████████
+██░░░░░░░██░░███░░██░░░░░░░██
+██░░░░░░░░██░░░░░██░░░░░░░░██
+██░░░░░░░░░███████░░░░░░░░░██
+─██░░░░░░░░░░░░░░░░░░░░░░░██─
+──██░░░░░░░░░░░░░░░░░░░░░██──
+───██░░░░░░░░░░░░░░░░░░░██───
+────███░░░░░░░░░░░░░░░███────
+─────▀███░░░░░░░░░░░███▀─────
+────────▀███████████▀────────";
