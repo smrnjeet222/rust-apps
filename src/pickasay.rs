@@ -1,81 +1,71 @@
-use cursive::event::Key;
-use cursive::traits::Identifiable;
-use cursive::views::{Checkbox, Dialog, EditView, ListView, TextView};
+use colored::*;
+use exitfailure::ExitFailure;
+use failure::ResultExt;
+use std::io::{self, Read};
+use structopt::StructOpt;
 
-struct PikasayOptions<'a> {
-    message: &'a str,
+#[derive(StructOpt)]
+struct Options {
+    #[structopt(default_value = "Hello World!")]
+    /// Pika Pika?
+    message: String,
+
+    #[structopt(short = "p", long = "pokeball")]
+    /// Pika...
     pokeball: bool,
+
+    #[structopt(short = "f", long = "file", parse(from_os_str))]
+    /// Use your own ASCII Pikachu from a file.
+    file: Option<std::path::PathBuf>,
+
+    #[structopt(short = "i", long = "stdin")]
+    /// Read the message from STDIN
+    stdin: bool,
 }
 
-fn input_step(app: &mut cursive::Cursive) {
-    app.pop_layer();
-    app.add_global_callback(Key::Esc, |s| s.quit());
-    app.add_layer(
-        Dialog::new()
-            .title("pika pikaaa !!!!")
-            .content(
-                ListView::new()
-                    .child("Message", EditView::new().with_name("message"))
-                    .child("Return", Checkbox::new().with_name("return")),
-            )
-            .button("OK", |s| {
-                let message = s
-                    .call_on_name("message", |t: &mut EditView| t.get_content())
-                    .unwrap();
-                let returned = s
-                    .call_on_name("return", |t: &mut Checkbox| t.is_checked())
-                    .unwrap();
-                let options = PikasayOptions {
-                    message: &message,
-                    pokeball: returned,
-                };
-
-                result_step(s, &options);
-            }),
-    )
-}
-
-fn result_step(app: &mut cursive::Cursive, options: &PikasayOptions) {
-    let message = if options.message.is_empty() {
-        "Hi from Simranjeet!"
+fn main() -> Result<(), ExitFailure> {
+    let options = Options::from_args(); // <-- This is where the magic happens! 
+    let mut message = "".to_string();
+    if options.stdin {
+        io::stdin().read_to_string(&mut message)?;
+        message.pop();
     } else {
-        options.message
-    };
-
-    let text = if options.pokeball {
-        format!("{}", POKEBALL)
+        message = options.message;
+    }
+    if options.pokeball {
+        println!("{}", POKEBALL.to_string().red());
     } else {
-        format!(
-            " {}
-| {} |
- {}
-  \\  /
-   \\/
-{}",
-            "-".repeat(message.chars().count() + 2),
-            message,
-            "-".repeat(message.chars().count() + 2),
-            PIKACHU
-        )
-    };
-
-    app.pop_layer();
-    app.add_layer(
-        Dialog::around(TextView::new(text))
-            .title("Pika...")
-            .button("OK", |s| input_step(s)),
-    );
+        match &options.file {
+            Some(path) => {
+                let alt = std::fs::read_to_string(path)
+                    .with_context(|_| format!("could not read file {:?}", path))?;
+                print_message(message);
+                println!("{}", alt.bright_yellow());
+            }
+            None => {
+                print_message(message);
+                println!("{}", PIKACHU.to_string().bright_yellow())
+            }
+        }
+    }
+    Ok(())
 }
 
-fn main() {
-    let mut app = cursive::default();
-    // app.add_layer(Dialog::around(TextView::new(PIKACHU)).button("Ok", |s| s.quit()));
-    // app.add_global_callback(Key::Esc, |s| s.quit());
-
-    input_step(&mut app);
-
-    app.run();
+fn print_message(message: String) {
+    if message.to_lowercase().contains("raichu") {
+        eprintln!("Pikachu hasn't evolved yet...");
+    } else {
+        println!(" {}", "-".repeat(message.chars().count() + 2));
+        println!("| {} |", message);
+        println!(" {}", "-".repeat(message.chars().count() + 2));
+        println!("  \\  /");
+        println!("   \\/");
+    }
 }
+
+
+
+
 
 const PIKACHU: &str = "⣿⣿⣿⣿⣿⡏⠉⠛⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⣿
 ⣿⣿⣿⣿⣿⣿⠀⠀⠀⠈⠛⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠿⠛⠉⠁⠀⣿

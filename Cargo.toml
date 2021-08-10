@@ -14,6 +14,7 @@ failure = "0.1.8"
 exitfailure = "0.5.1"
 assert_cmd = "1.0.1"
 predicates = "1.0.5"
+cursive = "0.15.0"
 
 [[bin]]
 name = "rust-app"
